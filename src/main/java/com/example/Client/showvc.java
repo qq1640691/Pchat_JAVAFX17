@@ -20,11 +20,14 @@ public class showvc extends Thread{
                     try {
                         playwav.play("temp\\" + s + "receive.wav");
                     } catch (Exception e) {
-                        System.out.println("错误内容,无法播放");
+                        infarea.appendText("错误内容,无法播放\n");
                     }
                 }
                 if (file != null) {
-                    file.delete();
+                    if (file.delete())
+                    {
+                        System.out.println("临时文件删除");
+                    }
                 }
                 videostremv.remove(s);
             }

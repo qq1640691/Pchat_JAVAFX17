@@ -2,13 +2,8 @@ package com.example.GUI;
 
 import com.example.Client.*;
 import com.example.Code.AES;
-import com.example.Code.SHA;
-//import com.example.demo2.Client.*;
-//import com.example.test.Regular.Client.*;
 import com.example.javasound.getvoice;
-import com.example.natserver.ping;
 import com.example.thesendinf.sendinf;
-import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -41,7 +36,6 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -54,7 +48,6 @@ public class Stage{
     public static int PORT;
     public static String ID;
     public static int BYTELENGTH = 744;
-//    public static int openorno = 0;
     public static CopyOnWriteArrayList<String> userlist = new CopyOnWriteArrayList<>();//这个表里存储的是用户列表
     public static CopyOnWriteArrayList<String> userdelay = new CopyOnWriteArrayList<>();//这个表里存储的是客户端之间的延迟
     public static ConcurrentHashMap<String, String> fileinf = new ConcurrentHashMap<>();//这个表里存储的是文件名对应文件信息,创建时间,大小
@@ -85,7 +78,6 @@ public class Stage{
             showalert(alert, err);
         }
         RSApublickey = new String(rsakey,0,rsakey.length);
-//        System.out.println(RSApublickey);
         javafx.stage.Stage stage = new javafx.stage.Stage();
         GridPane gridPane = new GridPane();
         HBox welcome = new HBox();
@@ -107,6 +99,10 @@ public class Stage{
         PasswordField keyfile = new PasswordField();
         TextField addressfile = new TextField();
         TextField portfile = new TextField();
+        keyfile.setText("0000000000000000");
+//        namefile.setText("方正"+new Random().nextInt(100));
+        addressfile.setText("47.113.189.105");
+        portfile.setText("41000");
         title.setTextAlignment(TextAlignment.CENTER);
         gridPane.add(username, 0, 1);
         gridPane.add(namefile, 1, 1);
@@ -355,29 +351,6 @@ public class Stage{
         } catch (IOException e) {
             System.out.println("文件建立 error");
         }
-        new Thread(()-> {
-            try {
-                Thread.sleep(8000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            String str;
-            try {
-                str = ping.sendthedelay(Objects.requireNonNull(myinf()).split("//")[0].replace("/",""));
-//                System.out.println(str);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            if (str.equals("无网络")) {
-                Platform.runLater(()->
-                {
-                    javafx.stage.Stage alert = new javafx.stage.Stage();
-                    Text err = new Text();
-                    err.setText("对称形NAT,无法通信");
-                    showalert(alert, err);
-                });
-            }
-        }).start();
         new Thread(()->{
                 while(true) {
                     for (byte[] getbytes : packetbytes) {
@@ -669,9 +642,7 @@ public class Stage{
             print.setText(new String(result, 256, result.length - 256));
             getdata.add(print);
             getlist.setItems(getdata);
-            String inf = new String(result,0,256);
-            SocketAddress address = new InetSocketAddress(inf.split("//")[1], Integer.parseInt(inf.split("//")[2]));
-            sendinf.sendmget(address, Client, SHA.getResult(new String(result, 256, result.length - 256)), myinf());
+            Chat.getstring(Client, result);
             reguler.method3("message\\"+getd.split("//")[3]+"\\"+"allmessage.txt", Stage.ID + ":" + formattime+"\n"+new String(result, 256, result.length - 256));
         }
         inputarea.setWrapText(true);

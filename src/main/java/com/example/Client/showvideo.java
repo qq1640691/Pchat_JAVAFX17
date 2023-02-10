@@ -71,9 +71,9 @@ public class showvideo extends Thread{
                 sendvideo="allow";
                 videostrem.clear();
                 showedtime.clear();
-                showvc.stop();
+                showvc.interrupt();
                 longtime.clear();
-                getimage.stop();
+                getimage.interrupt();
                 showfile.delecttemp();
             }
             );

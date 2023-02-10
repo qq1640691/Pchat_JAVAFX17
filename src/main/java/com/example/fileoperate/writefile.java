@@ -43,8 +43,8 @@ public class writefile {
             //把该位置文件读取出来
             byte[] bytes = new byte[result.length - 256];//?
             int len;
-            /**
-             * 这句话吧while改for,然后for的次数是后面的字节数
+            /*
+              这句话吧while改for,然后for的次数是后面的字节数
              */
             while ((len = randomAccessFile.read(bytes)) != -1) {
                 tmpout.write(bytes, 0, len);

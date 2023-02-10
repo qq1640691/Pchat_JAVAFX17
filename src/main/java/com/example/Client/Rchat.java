@@ -87,7 +87,10 @@ public class Rchat extends Thread{
     private static  byte[] fileConvertToByteArray(File file) {
         if(file.length()>0) {
             byte[] data= sendinf.filetobyte(file);
-            file.delete();
+            if(file.delete())
+            {
+                System.out.println("ok");
+            }
             return data;
         }
         return null;
@@ -97,25 +100,29 @@ public class Rchat extends Thread{
     {
         if(frame!=null) {
             byte[] send = new byte[frame.length + 50];
-            /**
-             * 这个的标头格式,0代表是视频,i代表块数,time代表生成帧的时间 frame.length是文件大小
+            /*
+              这个的标头格式,0代表是视频,i代表块数,time代表生成帧的时间 frame.length是文件大小
              */
             StringBuilder head = new StringBuilder("00" + "//" + time + "//" + frame.length + "//");
             Vchat.sendhead(head, send);
             System.arraycopy(head.toString().getBytes(StandardCharsets.UTF_8), 0, send, 0, 50);
             System.arraycopy(frame, 0, send, 50, frame.length);
-            byte[] sendbuf;
-            try {
-                sendbuf = AES.encrypt(send, KEY);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            DatagramPacket packet = new DatagramPacket(sendbuf, sendbuf.length, address);
-            try {
-                Client.send(packet);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            sendthebyte(Client, address, send);
+        }
+    }
+
+    public static void sendthebyte(DatagramSocket Client, SocketAddress address, byte[] send) {
+        byte[] sendbuf;
+        try {
+            sendbuf = AES.encrypt(send, KEY);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        DatagramPacket packet = new DatagramPacket(sendbuf, sendbuf.length, address);
+        try {
+            Client.send(packet);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

@@ -60,28 +60,25 @@ public class Vchat extends Thread{
         }
         Java2DFrameConverter converter = new Java2DFrameConverter();
         ImageView live1 = new ImageView();
-        Thread getimage = new Thread(()->{
-//            BufferedImage self_image;
-            service.scheduleWithFixedDelay(()->{
-                BufferedImage self_image;
-                try {
-                    self_image = converter.getBufferedImage(grabber.grab());
-                } catch (FrameGrabber.Exception e) {
-                    throw new RuntimeException(e);
-                }
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                try {
-                    ImageIO.write(resizeBufferedImage(self_image,400,300), "jpg", out);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                long time  =System.currentTimeMillis();
-                sendbyte(out.toByteArray(),time,Client,address);
-                Image image= convertToFxImage(self_image);
-                self_image.flush();
-                live1.setImage(image);
-        },0,1,TimeUnit.MICROSECONDS);
-        });
+        Thread getimage = new Thread(()-> service.scheduleWithFixedDelay(()->{
+            BufferedImage self_image;
+            try {
+                self_image = converter.getBufferedImage(grabber.grab());
+            } catch (FrameGrabber.Exception e) {
+                throw new RuntimeException(e);
+            }
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try {
+                ImageIO.write(resizeBufferedImage(self_image,400,300), "jpg", out);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            long time  =System.currentTimeMillis();
+            sendbyte(out.toByteArray(),time,Client,address);
+            Image image= convertToFxImage(self_image);
+            self_image.flush();
+            live1.setImage(image);
+    },0,1,TimeUnit.MICROSECONDS));
         getimage.start();
             HBox box = new HBox();
             box.getChildren().add(live1);
@@ -100,10 +97,11 @@ public class Vchat extends Thread{
             Thread rchat = new Rchat(ip,port,Client);
             rchat.start();
             stage.setOnCloseRequest(event -> {
+                rchat.interrupt();
                 service.shutdown();
                 showvideo="allow";
                 Close=0;
-                getimage.stop();
+                getimage.interrupt();
                 try {
                     grabber.close();
                 } catch (FrameGrabber.Exception e) {
@@ -122,32 +120,15 @@ public class Vchat extends Thread{
         for(int i=0;i<times;i++)
         {
             if (i>=times-1) {
-                /**
-                 * 这个的标头格式,0代表是视频,i代表块数,time代表生成帧的时间 frame.length是文件大小
+                /*
+                  这个的标头格式,0代表是视频,i代表块数,time代表生成帧的时间 frame.length是文件大小
                  */
-                StringBuilder head = new StringBuilder("01" + "//" + i + "//" + time + "//" + frame.length + "//");
-                sendhead(head,end);
-                System.arraycopy(head.toString().getBytes(StandardCharsets.UTF_8), 0, end, 0, 50);
-                System.arraycopy(frame, i * 950, end, 50, end.length - 50);
-                byte[] sendbuf;
-                try {
-                    sendbuf = AES.encrypt(end, KEY);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                DatagramPacket packet = new DatagramPacket(sendbuf, sendbuf.length, address);
-                try {
-                    Client.send(packet);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                sendtheimage(frame, time, end, i);
+                Rchat.sendthebyte(Client, address, end);
             }
             else if(i<times-1){
-                StringBuilder head = new StringBuilder("01"+"//"+i+"//"+time + "//" + frame.length + "//");//0代表是图片流
-                sendhead(head,send);//填充
-                System.arraycopy(head.toString().getBytes(StandardCharsets.UTF_8),0,send,0,50);
-                System.arraycopy(frame,i*950,send,50,send.length-50);
-                 byte[] sendbuf;
+                sendtheimage(frame, time, send, i);
+                byte[] sendbuf;
                 try {
                     sendbuf = AES.encrypt(send, KEY);
                 } catch (Exception e) {
@@ -166,6 +147,13 @@ public class Vchat extends Thread{
                 }
             }
         }
+    }
+
+    public static void sendtheimage(byte[] frame, long time, byte[] end, int i) {
+        StringBuilder head = new StringBuilder("01" + "//" + i + "//" + time + "//" + frame.length + "//");
+        sendhead(head,end);
+        System.arraycopy(head.toString().getBytes(StandardCharsets.UTF_8), 0, end, 0, 50);
+        System.arraycopy(frame, i * 950, end, 50, end.length - 50);
     }
 
     private static BufferedImage resizeBufferedImage(BufferedImage source, int targetW, int targetH) {
@@ -200,10 +188,7 @@ public class Vchat extends Thread{
         if (packetinf.toString().getBytes(StandardCharsets.UTF_8).length<50)
         {
             int templength = 50- packetinf.toString().getBytes(StandardCharsets.UTF_8).length;
-            for(int j = 0; j<templength; j++)
-            {
-                packetinf.append("*");
-            }
+            packetinf.append("*".repeat(Math.max(0, templength)));
         }
         System.arraycopy(packetinf.toString().getBytes(StandardCharsets.UTF_8),0,sendbuf,0,50);//把头部复制到sendbuf数组里
     }

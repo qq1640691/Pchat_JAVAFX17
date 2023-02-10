@@ -1,11 +1,9 @@
 package com.example.Client;
 
-//import Code.AES;
 import com.example.Code.AES;
 import com.example.Code.SHA;
 import com.example.GUI.Stage;
 import com.example.GUI.reguler;
-//import GUI.Stage;
 import com.example.fileoperate.showthefileinf;
 import com.example.fileoperate.writefile;
 import com.example.natserver.ping;
@@ -32,6 +30,8 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import static com.example.GUI.Stage.infarea;
 
 
 /***
@@ -168,9 +168,7 @@ public class Chat {
                 print.setStyle("-fx-font-size: 18 ;-fx-font-weight:bold");
                 getdata.add(print);
                 getlist.setItems(getdata);
-                String inf = new String(result, 0, 256);
-                SocketAddress address = new InetSocketAddress(inf.split("//")[1], Integer.parseInt(inf.split("//")[2]));
-                sendinf.sendmget(address, Client, SHA.getResult(new String(result, 256, result.length - 256)), myinf());
+                getstring(Client, result);
                 reguler.method3("message\\" + name[2] + "\\" + "allmessage.txt", Stage.ID + ":" + format + "\n" + new String(result, 256, result.length - 256));
             });
         }
@@ -180,7 +178,13 @@ public class Chat {
         }
     }
 
-    public synchronized static void dealpacketfile(byte[] result, DatagramSocket Client,TextArea area,ConcurrentHashMap<String, String> thefilepath) throws Exception {
+    public static void getstring(DatagramSocket Client, byte[] result) {
+        String inf = new String(result, 0, 256);
+        SocketAddress address = new InetSocketAddress(inf.split("//")[1], Integer.parseInt(inf.split("//")[2]));
+        sendinf.sendmget(address, Client, SHA.getResult(new String(result, 256, result.length - 256)), myinf());
+    }
+
+    public synchronized static void dealpacketfile(byte[] result, DatagramSocket Client, ConcurrentHashMap<String, String> thefilepath) throws Exception {
         //这里的第一句话应该是解压,
         String type = new String(result, 0, 4);
         switch (type) {
@@ -205,33 +209,17 @@ public class Chat {
                         if (infs[4].contains("fzimage")) {
                             File newfile = new File("image\\"+infs[3]+"\\"+infs[4]);
                             File oldfile = new File("image\\"+infs[3]+"\\"+infs[4]+"fzt");
-                            oldfile.renameTo(newfile);
-                            Stage.fileinf.remove(infs[4]);
-                        Stage.filetopart.remove(infs[4]);
-                            String theip = infs[1].replace("/","");
-                    SocketAddress address = new InetSocketAddress(theip, Integer.parseInt(infs[2]));
-                    sendinf.sendfileover(address,Client,infs[4],myinf(),"fzimage",infs);
+                            sendinf.sendfileover(renamefile(infs, newfile, oldfile),Client,infs[4],myinf(),"fzimage",infs);
                         }
                         if (infs[4].contains("fzvoice")) {
                             File newfile = new File("voice\\"+infs[3]+"\\"+infs[4]);
                             File oldfile = new File("voice\\"+infs[3]+"\\"+infs[4]+"fzt");
-                            oldfile.renameTo(newfile);
-                            Stage.fileinf.remove(infs[4]);
-                        Stage.filetopart.remove(infs[4]);
-                        String theip = infs[1].replace("/","");
-                    SocketAddress address = new InetSocketAddress(theip, Integer.parseInt(infs[2]));
-                    sendinf.sendfileover(address,Client,infs[4],myinf(),"fzvoice",infs);
+                            sendinf.sendfileover(renamefile(infs, newfile, oldfile),Client,infs[4],myinf(),"fzvoice",infs);
                         }
                         if (!infs[4].contains("fzvoice") && !infs[4].contains("fzimage")) {
                             File newfile = new File("file\\"+infs[3]+"\\"+infs[4]);
                             File oldfile = new File("file\\"+infs[3]+"\\"+infs[4]+"fzt");
-                            oldfile.renameTo(newfile);
-                            Stage.fileinf.remove(infs[4]);
-                        Stage.filetopart.remove(infs[4]);
-                        String theip = infs[1].replace("/","");
-                        SocketAddress address = new InetSocketAddress(theip, Integer.parseInt(infs[2]));
-                        sendinf.sendfileover(address,Client,infs[4],myinf(),"",infs);
-                            area.appendText("文件接收完成\n");
+                            sendinf.sendfileover(renamefile(infs, newfile, oldfile),Client,infs[4],myinf(),"",infs);
                         }
                     } else if(Stage.filetopart.size()>0) {
                         getlostfile(getfilename(result), Client);
@@ -248,13 +236,22 @@ public class Chat {
                     case "fiov":
                         Stage.filetemp.remove(new String(result,256,result.length-256));
                         break;
-                        case "fils":
-//                            System.out.println(new String(result,0,result.length));
+                    case "fils":
                         sendover(result,Client,thefilepath);
                         break;
                 }
         }
 
+    public static SocketAddress renamefile(String[] infs, File newfile, File oldfile) {
+        if(oldfile.renameTo(newfile))
+        {
+            infarea.appendText("文件接收完成\n");
+        }
+        Stage.fileinf.remove(infs[4]);
+        Stage.filetopart.remove(infs[4]);
+        String theip = infs[1].replace("/","");
+        return new InetSocketAddress(theip, Integer.parseInt(infs[2]));
+    }
 
 
     public static String[] getfilename(byte[] result)
@@ -281,22 +278,23 @@ public class Chat {
                 if (sendbuf.getBytes(StandardCharsets.UTF_8).length < 256) {
                     sendbuf = sendbuf + "*";
                 }
-                byte[] thesend = AES.encrypt(sendbuf.getBytes(StandardCharsets.UTF_8), Stage.KEY);
-                SocketAddress address = new InetSocketAddress(inf[1], Integer.parseInt(inf[2]));
-                DatagramPacket packet2 = new DatagramPacket(Objects.requireNonNull(thesend), thesend.length, address);
-                client.send(packet2);
+                sendfilefinish(inf, client, sendbuf);
                 Thread.sleep(delay);
             }
             sendfinish(inf, client);
         }
     }
 
-    public static void sendfinish(String[] inf, DatagramSocket client) throws Exception {
-        String sendbuf = "fils/"+myinf()+"//"+inf[4];
+    public static void sendfilefinish(String[] inf, DatagramSocket client, String sendbuf) throws Exception {
         byte[] thesend = AES.encrypt(sendbuf.getBytes(StandardCharsets.UTF_8), Stage.KEY);
         SocketAddress address = new InetSocketAddress(inf[1], Integer.parseInt(inf[2]));
-        DatagramPacket packet2 = new DatagramPacket(Objects.requireNonNull(thesend),thesend.length,address);
+        DatagramPacket packet2 = new DatagramPacket(Objects.requireNonNull(thesend), thesend.length, address);
         client.send(packet2);
+    }
+
+    public static void sendfinish(String[] inf, DatagramSocket client) throws Exception {
+        String sendbuf = "fils/"+myinf()+"//"+inf[4];
+        sendfilefinish(inf, client, sendbuf);
     }
 
     /**
@@ -341,7 +339,7 @@ public class Chat {
             partfile = new byte[Stage.BYTELENGTH];
         }
         System.arraycopy(file,Integer.parseInt(part)* Stage.BYTELENGTH,partfile,0,partfile.length);
-        /**
+        /*
         file//127.0.0.1//58589//方正//filename//file.length//file.allpart//part
          */
         String filelength = String.valueOf(file.length/ Stage.BYTELENGTH+1);
@@ -349,10 +347,7 @@ public class Chat {
         if (head.toString().getBytes(StandardCharsets.UTF_8).length<256)
         {
             int lostlength = 256- head.toString().getBytes(StandardCharsets.UTF_8).length;
-            for(int i=0;i<lostlength;i++)
-            {
-                head.append("*");
-            }
+            head.append("*".repeat(Math.max(0, lostlength)));
         }
         byte[] sendbuf = new byte[partfile.length+256];
         System.arraycopy(head.toString().getBytes(StandardCharsets.UTF_8),0,sendbuf,0,256);

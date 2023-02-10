@@ -28,10 +28,8 @@ import static com.example.GUI.Stage.*;
 import static com.example.GUI.Stage.filetopart;
 
 public class polling {
-
     DatagramSocket Client;
     TextArea area;
-
     String ip;
     int port;
     String id;
@@ -88,7 +86,7 @@ public class polling {
         service.scheduleWithFixedDelay(() -> {
             for (byte[] result : filebyte) {
                 try {
-                    dealpacketfile(result, Client, area,thefilepath);
+                    dealpacketfile(result, Client, thefilepath);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -114,8 +112,8 @@ public class polling {
             if (fileinf.size() > 0) {
                 Set<String> keyset = fileinf.keySet();
                 for (String file : keyset) {
-                    /**
-                     * 已经过去的时间大于文件传输所需要的时间,就要求重传.
+                    /*
+                      已经过去的时间大于文件传输所需要的时间,就要求重传.
                      */
                     if (fileinf.containsKey(file)) {
                         String[] inf = fileinf.get(file).split("//");
@@ -150,7 +148,7 @@ public class polling {
                 area.appendText("已链接用户:\n");
                 area.appendText(userdelay + "\n");
             }
-        }, 60, 30, TimeUnit.SECONDS);
+        }, 10, 30, TimeUnit.SECONDS);
 
         service.scheduleWithFixedDelay(() ->
         {

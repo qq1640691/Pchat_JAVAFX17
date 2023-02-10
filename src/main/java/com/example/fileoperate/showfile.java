@@ -45,8 +45,9 @@ public class showfile {
                                     if (!file.getParentFile().exists()) {
                                       file.getParentFile().mkdirs();
                                     }
-                                    fs.renameTo(file);
-                                    infarea.appendText("图片已显示\n");
+                                    if(fs.renameTo(file)) {
+                                        infarea.appendText("图片已显示\n");
+                                    }
                                 } catch (IOException e) {
                                     throw new RuntimeException(e);
                                 }
